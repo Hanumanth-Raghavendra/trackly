@@ -1,5 +1,5 @@
 import { parallel, type Queryable } from '../db.js';
-import { addDays, WEEKDAY_NAMES, weekdayOf } from './dates.js';
+import { addDays, daysBetween, WEEKDAY_NAMES, weekdayOf } from './dates.js';
 import { dailyRows, type DayRow, type UserContext } from './analytics.js';
 import { achievementByCode } from './gamification.js';
 
@@ -20,6 +20,10 @@ export interface WeeklyReview {
     xpEarned: number;
   };
   previous: { tasksCompleted: number; focusMinutes: number; averageScore: number; habitAdherence: number | null };
+  /** True while the week is still running; comparisons then use the same days of last week. */
+  inProgress: boolean;
+  /** How many days of each week the comparison covers (7 for a finished week). */
+  comparedDays: number;
   bestDay: { date: string; weekday: string; score: number } | null;
   topTags: { tag: string; count: number }[];
   achievements: { code: string; title: string; icon: string }[];
@@ -53,10 +57,13 @@ const change = (a: number, b: number) => (b === 0 ? null : Math.round(((a - b) /
 
 export async function buildWeeklyReview(q: Queryable, ctx: UserContext, weekStart: string, today: string): Promise<WeeklyReview> {
   const weekEnd = addDays(weekStart, 6);
-  const lastDay = weekEnd < today ? weekEnd : today; // don't score days that haven't happened
+  const lastDay = weekEnd < today ? weekEnd : today < weekStart ? weekStart : today; // don't score the future
+  const inProgress = lastDay < weekEnd;
+  // A week in progress is compared like-for-like: Mon-Thu against last Mon-Thu, not a full week.
+  const comparedDays = daysBetween(weekStart, lastDay) + 1;
   const [rows, prevRows, xp, tags, achievements] = await parallel(q, [
-    () => dailyRows(q, ctx, weekStart, lastDay < weekStart ? weekStart : lastDay),
-    () => dailyRows(q, ctx, addDays(weekStart, -7), addDays(weekStart, -1)),
+    () => dailyRows(q, ctx, weekStart, lastDay),
+    () => dailyRows(q, ctx, addDays(weekStart, -7), addDays(weekStart, comparedDays - 8)),
     () => q.query<{ xp: number }>(
       `SELECT coalesce(sum(delta), 0)::int AS xp FROM insights.xp_ledger
         WHERE user_id = $1 AND (earned_at AT TIME ZONE $2)::date BETWEEN $3::date AND $4::date`,
@@ -87,7 +94,7 @@ export async function buildWeeklyReview(q: Queryable, ctx: UserContext, weekStar
   if (cur.tasksCompleted > 0) {
     wins.push(
       `Completed ${cur.tasksCompleted} task${cur.tasksCompleted === 1 ? '' : 's'}` +
-        (taskChange !== null && taskChange > 0 ? ` — ${taskChange}% more than last week` : ''),
+        (taskChange !== null && taskChange > 0 ? ` — ${taskChange}% more than ${inProgress ? 'this time last week' : 'last week'}` : ''),
     );
   }
   if (cur.habitAdherence !== null && cur.habitAdherence >= 0.8) {
@@ -104,29 +111,40 @@ export async function buildWeeklyReview(q: Queryable, ctx: UserContext, weekStar
   }
 
   if (cur.habitAdherence !== null && cur.habitAdherence < 0.6) {
-    suggestions.push('Habit adherence dipped — shrink one habit to a 2-minute version for next week.');
+    suggestions.push('Habit adherence dipped — shrink one habit to a 2-minute version for a few days.');
   }
   if (focusChange !== null && focusChange <= -20) {
-    suggestions.push('Focus time dropped. Block two 25-minute sessions in your calendar before Monday.');
+    suggestions.push(
+      inProgress
+        ? 'Focus time is behind last week. Block two 25-minute sessions in your calendar for the next few days.'
+        : 'Focus time dropped. Block two 25-minute sessions in your calendar before Monday.',
+    );
   }
   if (cur.tasksCompleted > 0 && cur.tasksOnTime / cur.tasksCompleted < 0.75) {
     suggestions.push('Several tasks finished late. Add due dates to the next step, not just the final deadline.');
   }
-  const zeroDays = rows.filter((r) => r.inputs.tasksCompleted + r.inputs.habitsDone + r.inputs.focusMinutes === 0);
+  // Today isn't over yet, so it can't count as an empty day.
+  const zeroDays = rows.filter(
+    (r) => r.date !== today && r.inputs.tasksCompleted + r.inputs.habitsDone + r.inputs.focusMinutes === 0,
+  );
   if (zeroDays.length >= 2) {
     suggestions.push(`${zeroDays.length} days had no activity. Plan one tiny task for those days to keep momentum.`);
   }
   if (suggestions.length === 0) {
-    suggestions.push('Keep the same rhythm next week, and pick one stretch task that moves a goal forward.');
+    suggestions.push(
+      inProgress
+        ? 'Keep this rhythm, and pick one stretch task that moves a goal forward before Sunday.'
+        : 'Keep the same rhythm next week, and pick one stretch task that moves a goal forward.',
+    );
   }
 
   const coachSummary =
     cur.tasksCompleted + cur.habitsDone + cur.focusMinutes === 0
       ? 'A quiet week. Start small: one task, one habit, one focus session — momentum builds from there.'
       : `You averaged a productivity score of ${cur.averageScore}` +
-        (prev.averageScore ? ` (last week: ${prev.averageScore})` : '') +
+        (prev.averageScore ? ` (${inProgress ? 'same days last week' : 'last week'}: ${prev.averageScore})` : '') +
         `. ${wins[0] ? `Highlight: ${wins[0].charAt(0).toLowerCase()}${wins[0].slice(1)}.` : ''} ` +
-        `Next week: ${suggestions[0]!.charAt(0).toLowerCase()}${suggestions[0]!.slice(1)}`;
+        `${inProgress ? 'For the rest of the week' : 'Next week'}: ${suggestions[0]!.charAt(0).toLowerCase()}${suggestions[0]!.slice(1)}`;
 
   return {
     weekStart,
@@ -155,6 +173,8 @@ export async function buildWeeklyReview(q: Queryable, ctx: UserContext, weekStar
       averageScore: prev.averageScore,
       habitAdherence: prev.habitAdherence,
     },
+    inProgress,
+    comparedDays,
     bestDay: best ? { date: best.date, weekday: WEEKDAY_NAMES[weekdayOf(best.date) - 1]!, score: best.score.score } : null,
     topTags: tags.rows.map((t) => ({ tag: t.tag, count: t.n })),
     achievements: achievements.rows

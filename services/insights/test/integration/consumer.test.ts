@@ -116,4 +116,27 @@ describe('OutboxConsumer', () => {
       expect(r.rows[0].n, table).toBe(0);
     }
   });
+  it('dates backfilled achievements by when the threshold was really crossed', async () => {
+    const user = uuid();
+    const day = 86_400_000;
+    const start = Date.now() - 20 * day;
+    await publish(h.db, user, 'USER_REGISTERED', { id: user, email: 'b@b.c', displayName: 'B', timezone: 'Asia/Calcutta', focusGoalMinutes: 60, demo: false });
+    for (let i = 0; i < 12; i++) {
+      const completedAt = new Date(start + i * day).toISOString();
+      await publish(h.db, user, 'TASK_COMPLETED', task(uuid(), { status: 'DONE', completedAt, dueAt: null }), new Date(completedAt));
+    }
+    await h.consumer.drain();
+
+    const { rows } = await h.db.query<{ code: string; unlocked_at: Date }>(
+      `SELECT code, unlocked_at FROM insights.achievements WHERE user_id = $1 ORDER BY unlocked_at`,
+      [user],
+    );
+    const at = Object.fromEntries(rows.map((r) => [r.code, r.unlocked_at.getTime()]));
+    expect(at.FIRST_STEPS).toBe(start);
+    expect(at.GETTING_THINGS_DONE).toBe(start + 9 * day); // the 10th task, not the batch time
+
+    // The legacy zone name was normalised before it reached SQL.
+    const tz = await h.db.query<{ timezone: string }>('SELECT timezone FROM insights.users WHERE user_id = $1', [user]);
+    expect(tz.rows[0]!.timezone).toBe('Asia/Kolkata');
+  });
 });

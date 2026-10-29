@@ -5,6 +5,7 @@ import { createTokenVerifier } from './auth.js';
 import { loadConfig } from './config.js';
 import { OutboxConsumer } from './consumer/outboxConsumer.js';
 import { createPool } from './db.js';
+import { setDatabaseZones } from './domain/dates.js';
 import { logger } from './logger.js';
 import { migrate } from './migrate.js';
 import { Notifier } from './notifications/notifier.js';
@@ -16,6 +17,9 @@ async function main() {
   const cfg = loadConfig();
   const db = createPool(cfg);
   await migrate(db);
+  // Only hand Postgres zone names it knows (its tzdata can lag behind Node's).
+  const zones = await db.query<{ name: string }>('SELECT name FROM pg_timezone_names');
+  setDatabaseZones(zones.rows.map((r) => r.name));
 
   const verify = createTokenVerifier(cfg.JWT_SECRET, cfg.JWT_ISSUER);
   const ai = createAiProvider(cfg);

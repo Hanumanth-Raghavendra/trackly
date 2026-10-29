@@ -17,6 +17,8 @@ import { generateInsights } from '../domain/insights.js';
 import { buildWeeklyReview } from '../domain/review.js';
 
 const daysParam = (def: number, max = 365) => z.object({ days: z.coerce.number().int().min(7).max(max).default(def) });
+/** Days of history behind the coach cards; matches the Insights page default. */
+const INSIGHT_WINDOW = 30;
 
 export function analyticsRouter(db: Db) {
   const r = Router();
@@ -28,9 +30,10 @@ export function analyticsRouter(db: Db) {
     const ctx = await ctxFor(req);
     const today = todayIn(ctx.timezone);
     const [rows, heat, proc, habits, stats] = await Promise.all([
-      dailyRows(db, ctx, addDays(today, -27), today),
-      heatmap(db, ctx, 28),
-      procrastination(db, ctx, 30),
+      // One 30-day window everywhere, so the Today cards and the Insights page agree.
+      dailyRows(db, ctx, addDays(today, -(INSIGHT_WINDOW - 1)), today),
+      heatmap(db, ctx, INSIGHT_WINDOW),
+      procrastination(db, ctx, INSIGHT_WINDOW),
       habitInsights(db, ctx, 56),
       db.query<{ xp: number }>('SELECT xp FROM insights.user_stats WHERE user_id = $1', [ctx.userId]),
     ]);
@@ -106,7 +109,7 @@ export function analyticsRouter(db: Db) {
   });
 
   r.get('/insights', async (req, res) => {
-    const { days } = daysParam(28, 90).parse(req.query);
+    const { days } = daysParam(INSIGHT_WINDOW, 90).parse(req.query);
     const ctx = await ctxFor(req);
     const today = todayIn(ctx.timezone);
     const [rows, heat, proc, habits] = await Promise.all([

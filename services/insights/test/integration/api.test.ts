@@ -81,6 +81,18 @@ describe('insights API', () => {
     expect(res.body.totals.tasksCompleted).toBeGreaterThanOrEqual(1);
     expect(res.body.coachSummary).toBeTruthy();
     expect(res.body.suggestions.length).toBeGreaterThan(0);
+    // The current week is still running, so it is compared with the same days of last week.
+    expect(res.body.inProgress).toBe(res.body.weekEnd > res.body.days.at(-1).date);
+    expect(res.body.comparedDays).toBe(res.body.days.length);
+
+    const lastWeek = await request(h.app)
+      .get('/api/v1/insights/reviews/weekly')
+      .query({ weekStart: '2020-01-06' })
+      .set(auth())
+      .expect(200);
+    expect(lastWeek.body.inProgress).toBe(false);
+    expect(lastWeek.body.comparedDays).toBe(7);
+    expect(lastWeek.body.days).toHaveLength(7);
   });
 
   it('exposes gamification and notifications', async () => {

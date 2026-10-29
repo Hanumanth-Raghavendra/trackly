@@ -50,8 +50,13 @@ describe('scoreDay', () => {
     });
     const points = s.components.reduce((sum, c) => sum + c.points, 0);
     expect(Math.abs(points - s.score)).toBeLessThanOrEqual(1);
-    expect(s.components.find((c) => c.key === 'tasks')!.detail).toBe('2 of 4 planned tasks');
+    expect(s.components.find((c) => c.key === 'tasks')!.detail).toBe('2 of 4 due today');
     expect(s.components.find((c) => c.key === 'habits')!.detail).toBe('1 of 2 habits');
+  });
+
+  it('says when the task target is the daily floor rather than the due list', () => {
+    const s = scoreDay({ ...base, tasksCompleted: 0, tasksCompletedOnTime: 0, tasksDue: 1 });
+    expect(s.components.find((c) => c.key === 'tasks')!.detail).toBe('0 of 3 (daily target)');
   });
 
   it('never exceeds 100 when over-achieving', () => {

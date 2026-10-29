@@ -1,5 +1,5 @@
 import type { Config } from '../config.js';
-import { withTransaction, type Db } from '../db.js';
+import { withTransaction, type Db, type Tx } from '../db.js';
 import { levelProgress } from '../domain/gamification.js';
 import { logger } from '../logger.js';
 import type { NotificationRow, Notifier } from '../notifications/notifier.js';
@@ -177,32 +177,15 @@ export class OutboxConsumer {
       // Per-user follow-up: XP/level, achievements, notifications, live sync messages.
       for (const [userId, t] of touched) {
         if (t.deleted) continue;
-        const stats = await refreshStats(tx, userId);
-        const unlocked = await unlockAchievements(tx, userId, stats.level, t.lastAt);
-        if (t.live) {
-          if (stats.level > stats.previousLevel) {
-            const row = await this.notifier.create(tx, userId, {
-              type: 'level_up',
-              title: `Level ${stats.level} reached!`,
-              body: `You're now a ${levelProgress(stats.xp).title}. Keep the momentum going.`,
-              data: { level: stats.level },
-            });
-            notifications.push({ row, push: true });
-            effects.push({ userId, event: 'level_up', payload: levelProgress(stats.xp) });
-          }
-          for (const a of unlocked) {
-            const row = await this.notifier.create(tx, userId, {
-              type: 'achievement',
-              title: `${a.icon} Achievement unlocked: ${a.title}`,
-              body: a.description,
-              data: { code: a.code },
-            });
-            notifications.push({ row, push: true });
-            effects.push({ userId, event: 'achievement', payload: { code: a.code, title: a.title, description: a.description, icon: a.icon, tier: a.tier } });
-          }
+        // One user's follow-up failing must never block everyone else's events.
+        await tx.query('SAVEPOINT follow_up');
+        try {
+          await this.followUp(tx, userId, t, effects, notifications);
+          await tx.query('RELEASE SAVEPOINT follow_up');
+        } catch (err) {
+          await tx.query('ROLLBACK TO SAVEPOINT follow_up');
+          logger.error({ err, userId }, 'post-processing failed for user (events still applied)');
         }
-        effects.push({ userId, event: 'sync', payload: { entities: [...t.entities, 'insights'] } });
-        effects.push({ userId, event: 'stats', payload: levelProgress(stats.xp) });
       }
 
       await tx.query('UPDATE insights.consumer_offsets SET last_event_id = $1, updated_at = now() WHERE consumer = $2', [
@@ -218,6 +201,42 @@ export class OutboxConsumer {
     this.processedTotal += count;
     if (count > 0) logger.debug({ count }, 'processed outbox events');
     return count;
+  }
+
+
+  private async followUp(
+    tx: Tx,
+    userId: string,
+    t: Touched,
+    effects: Effect[],
+    notifications: { row: NotificationRow; push: boolean }[],
+  ) {
+    const stats = await refreshStats(tx, userId);
+    const unlocked = await unlockAchievements(tx, userId, stats.level, t.lastAt);
+    if (t.live) {
+      if (stats.level > stats.previousLevel) {
+        const row = await this.notifier.create(tx, userId, {
+          type: 'level_up',
+          title: `Level ${stats.level} reached!`,
+          body: `You're now a ${levelProgress(stats.xp).title}. Keep the momentum going.`,
+          data: { level: stats.level },
+        });
+        notifications.push({ row, push: true });
+        effects.push({ userId, event: 'level_up', payload: levelProgress(stats.xp) });
+      }
+      for (const a of unlocked) {
+        const row = await this.notifier.create(tx, userId, {
+          type: 'achievement',
+          title: `${a.icon} Achievement unlocked: ${a.title}`,
+          body: a.description,
+          data: { code: a.code },
+        });
+        notifications.push({ row, push: true });
+        effects.push({ userId, event: 'achievement', payload: { code: a.code, title: a.title, description: a.description, icon: a.icon, tier: a.tier } });
+      }
+    }
+    effects.push({ userId, event: 'sync', payload: { entities: [...t.entities, 'insights'] } });
+    effects.push({ userId, event: 'stats', payload: levelProgress(stats.xp) });
   }
 
   /** Processes until the outbox is drained (used at startup and in tests). */
