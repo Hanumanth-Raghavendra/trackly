@@ -1,0 +1,179 @@
+@import 'tailwindcss';
+@import '@fontsource-variable/archivo/wdth.css';
+
+@custom-variant dark (&:where(.dark, .dark *));
+
+/*
+ * Trackly tokens — "know your pace".
+ * The world is a running track and a stadium scoreboard: track blue, white lane lines,
+ * hi-vis volt for progress, and condensed scoreboard numerals.
+ */
+:root {
+  --bg: #f4f6fb;
+  --surface: #ffffff;
+  --surface-2: #ebeff8;
+  --ink: #101b45;
+  --ink-soft: #4a5682;
+  --ink-faint: #8a93b5;
+  --lane: #dce2f0;
+  --lane-strong: #c4cde3;
+  --track: #2346d8;
+  --track-deep: #14286e;
+  --track-soft: #e3e9ff;
+  --volt: #c6f432;
+  --volt-soft: #f0fbcf;
+  --signal: #e5484d;
+  --signal-soft: #fdecec;
+  --amber: #c98100;
+  --amber-soft: #fff4db;
+  --focus-ring: #2346d8;
+  color-scheme: light;
+}
+
+.dark {
+  --bg: #0a1230;
+  --surface: #111c45;
+  --surface-2: #17245a;
+  --ink: #e9edfb;
+  --ink-soft: #a7b1d6;
+  --ink-faint: #6e7aa6;
+  --lane: #22306a;
+  --lane-strong: #2e3e80;
+  --track: #6b86ff;
+  --track-deep: #b8c6ff;
+  --track-soft: #1b2a6b;
+  --volt: #c6f432;
+  --volt-soft: #2a3a12;
+  --signal: #ff6b6b;
+  --signal-soft: #3a1830;
+  --amber: #ffb938;
+  --amber-soft: #3a2c10;
+  --focus-ring: #c6f432;
+  color-scheme: dark;
+}
+
+@theme inline {
+  --font-sans: 'Archivo Variable', ui-sans-serif, system-ui, sans-serif;
+
+  --color-bg: var(--bg);
+  --color-surface: var(--surface);
+  --color-surface-2: var(--surface-2);
+  --color-ink: var(--ink);
+  --color-ink-soft: var(--ink-soft);
+  --color-ink-faint: var(--ink-faint);
+  --color-lane: var(--lane);
+  --color-lane-strong: var(--lane-strong);
+  --color-track: var(--track);
+  --color-track-deep: var(--track-deep);
+  --color-track-soft: var(--track-soft);
+  --color-volt: var(--volt);
+  --color-volt-soft: var(--volt-soft);
+  --color-signal: var(--signal);
+  --color-signal-soft: var(--signal-soft);
+  --color-amber: var(--amber);
+  --color-amber-soft: var(--amber-soft);
+
+  --radius-panel: 20px;
+  --radius-row: 12px;
+  --radius-control: 10px;
+}
+
+@layer base {
+  html {
+    -webkit-text-size-adjust: 100%;
+    text-rendering: optimizeLegibility;
+  }
+  body {
+    background: var(--bg);
+    color: var(--ink);
+    font-family: var(--font-sans);
+    font-size: 15px;
+    line-height: 1.5;
+    font-stretch: 100%;
+    -webkit-font-smoothing: antialiased;
+  }
+  :focus-visible {
+    outline: 2px solid var(--focus-ring);
+    outline-offset: 2px;
+  }
+  ::selection {
+    background: var(--volt);
+    color: #101b45;
+  }
+  button,
+  [role='button'] {
+    cursor: pointer;
+  }
+  button:disabled {
+    cursor: not-allowed;
+  }
+}
+
+@layer components {
+  /* Scoreboard type: condensed and heavy, for numbers and big headlines. */
+  .font-display {
+    font-stretch: 68%;
+    font-weight: 800;
+    letter-spacing: -0.005em;
+    line-height: 0.95;
+  }
+  .font-condensed {
+    font-stretch: 80%;
+  }
+  .num {
+    font-variant-numeric: tabular-nums;
+  }
+  /* A lane line: the structural divider used everywhere instead of card shadows. */
+  .lane-b {
+    border-bottom: 1px solid var(--lane);
+  }
+  .lane-t {
+    border-top: 1px solid var(--lane);
+  }
+  .panel {
+    background: var(--surface);
+    border: 1px solid var(--lane);
+    border-radius: var(--radius-panel);
+  }
+  .safe-bottom {
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+  .safe-top {
+    padding-top: env(safe-area-inset-top);
+  }
+}
+
+@layer utilities {
+  .scrollbar-thin {
+    scrollbar-width: thin;
+    scrollbar-color: var(--lane-strong) transparent;
+  }
+}
+
+/* Feedback motion for user actions only. */
+@keyframes pop {
+  0% { transform: scale(0.6); }
+  60% { transform: scale(1.12); }
+  100% { transform: scale(1); }
+}
+.animate-pop {
+  animation: pop 260ms cubic-bezier(0.2, 0.9, 0.3, 1.3);
+}
+
+@keyframes rise-fade {
+  0% { transform: translateY(6px); opacity: 0; }
+  100% { transform: translateY(0); opacity: 1; }
+}
+.animate-rise {
+  animation: rise-fade 220ms ease-out both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 1ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 1ms !important;
+  }
+}
