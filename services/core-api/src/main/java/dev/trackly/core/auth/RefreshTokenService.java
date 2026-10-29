@@ -26,6 +26,9 @@ import org.springframework.transaction.annotation.Transactional;
  *   <li>Every refresh revokes the presented token and issues a new one in the same "family".</li>
  *   <li>If an already-revoked token is presented again, someone replayed a stolen token:
  *       the whole family is revoked, logging out both the thief and the victim.</li>
+ *   <li>Exception: a token rotated only seconds ago whose replacement was never used is a lost
+ *       response (the page reloaded mid-request, a mobile network dropped), not theft. It gets a
+ *       fresh token in the same family instead of logging the user out. See {@link #REUSE_GRACE}.</li>
  * </ul>
  */
 @Service
@@ -33,6 +36,12 @@ public class RefreshTokenService {
 
     private static final Logger log = LoggerFactory.getLogger(RefreshTokenService.class);
     private static final SecureRandom RANDOM = new SecureRandom();
+
+    /**
+     * How long a just-rotated token may be presented again without counting as theft. Short on
+     * purpose: long enough to cover a reload or retry, too short to be a useful theft window.
+     */
+    static final Duration REUSE_GRACE = Duration.ofSeconds(20);
 
     /** Raw token (sent to the client exactly once) plus the row that stores its hash. */
     public record Issued(String rawToken, RefreshToken token) {}
@@ -65,6 +74,9 @@ public class RefreshTokenService {
         Instant now = clock.instant();
 
         if (current.isRevoked()) {
+            if (isLostResponse(current, now)) {
+                return issue(current.getUserId(), current.getFamilyId(), userAgent);
+            }
             // Re-use of a rotated token => likely theft. Kill the entire chain.
             int revoked = repository.revokeFamily(current.getFamilyId(), now);
             log.warn("Refresh token re-use detected for user {} - revoked {} tokens", current.getUserId(), revoked);
@@ -77,6 +89,18 @@ public class RefreshTokenService {
         Issued next = issue(current.getUserId(), current.getFamilyId(), userAgent);
         current.revoke(now, next.token().getId());
         return next;
+    }
+
+    /**
+     * True when {@code used} was rotated (not logged out or revoked for theft) within the grace
+     * window and its replacement hasn't been used yet, i.e. the client most likely never received
+     * the replacement. Once the chain has moved on, presenting an old token is treated as theft.
+     */
+    private boolean isLostResponse(RefreshToken used, Instant now) {
+        if (used.getReplacedBy() == null || used.getRevokedAt().isBefore(now.minus(REUSE_GRACE))) {
+            return false;
+        }
+        return repository.findById(used.getReplacedBy()).map(next -> !next.isRevoked()).orElse(false);
     }
 
     @Transactional(propagation = Propagation.REQUIRED)
