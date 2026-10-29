@@ -2,13 +2,15 @@ name: Android app
 
 # Builds the Capacitor Android app for free on GitHub's runners.
 # - Every run: a debug APK you can install on any phone (Actions run -> Artifacts).
-# - Tags like v1.0.0: also attached to a GitHub Release.
+# - Publishing a GitHub Release (or pushing a tag like v1.0.0): the APK is attached to it.
 # - If the signing secrets exist (docs/MOBILE.md): a signed release AAB, ready for Google Play.
 
 on:
   workflow_dispatch:
   push:
     tags: ["v*"]
+  release:
+    types: [published]
 
 permissions:
   contents: write

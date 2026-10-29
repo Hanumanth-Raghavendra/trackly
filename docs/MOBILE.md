@@ -27,8 +27,9 @@ GitHub builds it for free:
 3. Copy the APK to your phone and open it. Android asks once to allow installing apps from that
    source (your Files app or browser). Allow it, then install.
 
-Pushing a tag such as `v1.0.0` also attaches the APK to a GitHub Release, which is where the
-landing page's **Android app** link points.
+Publishing a GitHub Release (repo → **Releases** → **Draft a new release** → tag `v1.0.0` →
+**Publish release**), or pushing a tag such as `v1.0.0`, also attaches the APK to that release.
+That's where the landing page's **Android app** link points.
 
 The app talks to `https://trackly-core-api.onrender.com` and `https://trackly-insights.onrender.com`.
 If Render gave your services other URLs, set the repository **variables** `MOBILE_API_URL` and
