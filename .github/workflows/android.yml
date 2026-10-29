@@ -1,0 +1,92 @@
+name: Android app
+
+# Builds the Capacitor Android app for free on GitHub's runners.
+# - Every run: a debug APK you can install on any phone (Actions run -> Artifacts).
+# - Tags like v1.0.0: also attached to a GitHub Release.
+# - If the signing secrets exist (docs/MOBILE.md): a signed release AAB, ready for Google Play.
+
+on:
+  workflow_dispatch:
+  push:
+    tags: ["v*"]
+
+permissions:
+  contents: write
+
+jobs:
+  android:
+    name: Build APK / AAB
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: apps/web
+    env:
+      # Repository variables (Settings -> Secrets and variables -> Actions -> Variables) override
+      # these if Render gave your services different URLs.
+      MOBILE_API_URL: ${{ vars.MOBILE_API_URL || 'https://trackly-core-api.onrender.com' }}
+      MOBILE_INSIGHTS_URL: ${{ vars.MOBILE_INSIGHTS_URL || 'https://trackly-insights.onrender.com' }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: apps/web/package-lock.json
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "21"
+          cache: gradle
+      - uses: android-actions/setup-android@v3
+
+      - run: npm ci
+      - name: Build the web bundle with absolute API URLs
+        run: |
+          {
+            echo "VITE_API_URL=$MOBILE_API_URL"
+            echo "VITE_INSIGHTS_URL=$MOBILE_INSIGHTS_URL"
+            echo "VITE_SOCKET_URL=$MOBILE_INSIGHTS_URL"
+            echo "VITE_GITHUB_URL=https://github.com/${{ github.repository }}"
+          } > .env.mobile
+          npm run build:mobile
+      - run: npx cap sync android
+
+      - name: Debug APK
+        working-directory: apps/web/android
+        run: ./gradlew assembleDebug --no-daemon
+      - uses: actions/upload-artifact@v4
+        with:
+          name: trackly-debug-apk
+          path: apps/web/android/app/build/outputs/apk/debug/app-debug.apk
+
+      - name: Signed release bundle (only when signing secrets are configured)
+        id: release
+        working-directory: apps/web/android
+        env:
+          KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          TRACKLY_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          TRACKLY_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          TRACKLY_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+        run: |
+          if [ -z "$KEYSTORE_BASE64" ]; then
+            echo "No signing secrets configured - skipping the Play Store bundle."
+            exit 0
+          fi
+          echo "$KEYSTORE_BASE64" | base64 --decode > "$RUNNER_TEMP/release.jks"
+          TRACKLY_KEYSTORE_PATH="$RUNNER_TEMP/release.jks" ./gradlew bundleRelease --no-daemon
+          echo "built=true" >> "$GITHUB_OUTPUT"
+      - uses: actions/upload-artifact@v4
+        if: steps.release.outputs.built == 'true'
+        with:
+          name: trackly-release-aab
+          path: apps/web/android/app/build/outputs/bundle/release/app-release.aab
+
+      - name: Attach the APK to the GitHub Release
+        if: startsWith(github.ref, 'refs/tags/v')
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          cp android/app/build/outputs/apk/debug/app-debug.apk "trackly-${GITHUB_REF_NAME}.apk"
+          gh release create "$GITHUB_REF_NAME" "trackly-${GITHUB_REF_NAME}.apk" \
+            --title "Trackly $GITHUB_REF_NAME" --generate-notes || \
+          gh release upload "$GITHUB_REF_NAME" "trackly-${GITHUB_REF_NAME}.apk" --clobber
