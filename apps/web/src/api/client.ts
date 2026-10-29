@@ -131,11 +131,21 @@ export async function applySession(data: AuthResponse) {
 /** Single-flight refresh: many parallel 401s trigger exactly one refresh call. */
 export function refreshSession(): Promise<boolean> {
   if (!refreshing) {
-    refreshing = doRefresh().finally(() => {
+    refreshing = withCrossTabLock(doRefresh).finally(() => {
       refreshing = null;
     });
   }
   return refreshing;
+}
+
+/**
+ * Every tab shares one refresh cookie, and each refresh rotates it. The Web Locks API makes tabs
+ * take turns, so two tabs never present the same token at once. Native apps have a single
+ * WebView, and browsers without the API fall back to the in-tab single flight above.
+ */
+function withCrossTabLock<T>(fn: () => Promise<T>): Promise<T> {
+  const locks = typeof navigator === 'undefined' ? undefined : navigator.locks;
+  return locks && !isNative ? locks.request('trackly-refresh', fn) : fn();
 }
 
 async function doRefresh(): Promise<boolean> {

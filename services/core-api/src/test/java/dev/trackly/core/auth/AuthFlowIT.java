@@ -54,9 +54,40 @@ class AuthFlowIT extends IntegrationTest {
         Cookie rotated = refreshed.getResponse().getCookie(AuthController.COOKIE);
         assertThat(rotated.getValue()).isNotEqualTo(original.getValue());
 
-        // Replaying the old token = theft signal: rejected AND the whole family is revoked.
+        // The legitimate client moves the chain on...
+        Cookie latest = mvc.perform(post("/api/v1/auth/refresh").cookie(rotated))
+                .andExpect(status().isOk())
+                .andReturn().getResponse().getCookie(AuthController.COOKIE);
+
+        // ...so replaying the old token is a theft signal: rejected AND the whole family is revoked.
         mvc.perform(post("/api/v1/auth/refresh").cookie(original)).andExpect(status().isUnauthorized());
-        mvc.perform(post("/api/v1/auth/refresh").cookie(rotated)).andExpect(status().isUnauthorized());
+        mvc.perform(post("/api/v1/auth/refresh").cookie(latest)).andExpect(status().isUnauthorized());
+    }
+
+    @Test
+    void aRotationWhoseResponseWasLostDoesNotSignTheUserOut() throws Exception {
+        Cookie original = register(uniqueEmail()).getResponse().getCookie(AuthController.COOKIE);
+
+        // The browser sends a refresh, then reloads before the new cookie arrives...
+        mvc.perform(post("/api/v1/auth/refresh").cookie(original)).andExpect(status().isOk());
+
+        // ...so the next page load presents the same token again, seconds later.
+        Cookie recovered = mvc.perform(post("/api/v1/auth/refresh").cookie(original))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.accessToken").isNotEmpty())
+                .andReturn().getResponse().getCookie(AuthController.COOKIE);
+
+        // The session carries on normally from the recovered token.
+        mvc.perform(post("/api/v1/auth/refresh").cookie(recovered)).andExpect(status().isOk());
+    }
+
+    @Test
+    void loggedOutTokensCannotBeRevivedThroughTheGraceWindow() throws Exception {
+        Cookie original = register(uniqueEmail()).getResponse().getCookie(AuthController.COOKIE);
+
+        mvc.perform(post("/api/v1/auth/logout").cookie(original)).andExpect(status().isNoContent());
+
+        mvc.perform(post("/api/v1/auth/refresh").cookie(original)).andExpect(status().isUnauthorized());
     }
 
     @Test
