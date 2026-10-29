@@ -68,10 +68,17 @@ public class SecurityConfig {
         return http.build();
     }
 
+    /** Origins the Capacitor app's WebView uses on Android and iOS; always allowed. */
+    static final List<String> NATIVE_APP_ORIGINS = List.of("https://localhost", "capacitor://localhost");
+
     @Bean
     CorsConfigurationSource corsConfigurationSource(AppProperties props) {
         CorsConfiguration config = new CorsConfiguration();
-        config.setAllowedOriginPatterns(props.cors().allowedOrigins().stream().map(String::trim).toList());
+        config.setAllowedOriginPatterns(java.util.stream.Stream.concat(
+                        props.cors().allowedOrigins().stream().map(String::trim).filter(s -> !s.isEmpty()),
+                        NATIVE_APP_ORIGINS.stream())
+                .distinct()
+                .toList());
         config.setAllowedMethods(List.of("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
         config.setAllowedHeaders(List.of("Authorization", "Content-Type", "X-Client", "X-Request-Id"));
         config.setExposedHeaders(List.of("X-Request-Id", "Retry-After"));

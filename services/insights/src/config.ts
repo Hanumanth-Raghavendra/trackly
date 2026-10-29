@@ -26,7 +26,9 @@ const schema = z.object({
   // Outbox consumer
   OUTBOX_BATCH_SIZE: z.coerce.number().int().min(10).max(2000).default(500),
   POLL_ACTIVE_MS: z.coerce.number().int().min(200).default(2_000),
-  POLL_IDLE_MS: z.coerce.number().int().min(1_000).default(600_000),
+  // Idle = nobody connected. Core nudges us on every write, so this is only a safety net, and
+  // keeping it rare lets the free Neon database scale to zero between visits.
+  POLL_IDLE_MS: z.coerce.number().int().min(1_000).default(1_200_000),
 
   // AI (optional, provider-agnostic). "none" keeps everything rule-based and free.
   AI_PROVIDER: z.enum(['none', 'gemini', 'openai', 'anthropic']).default('none'),
@@ -58,8 +60,16 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): Config {
   }
   return {
     ...cfg,
-    corsOrigins: cfg.CORS_ALLOWED_ORIGINS.split(',')
-      .map((o) => o.trim())
-      .filter(Boolean),
+    corsOrigins: [
+      ...new Set([
+        ...cfg.CORS_ALLOWED_ORIGINS.split(',')
+          .map((o) => o.trim())
+          .filter(Boolean),
+        ...NATIVE_APP_ORIGINS,
+      ]),
+    ],
   };
 }
+
+/** Origins the Capacitor app's WebView uses on Android and iOS; always allowed. */
+export const NATIVE_APP_ORIGINS = ['https://localhost', 'capacitor://localhost'];
