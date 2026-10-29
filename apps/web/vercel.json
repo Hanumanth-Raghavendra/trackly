@@ -17,29 +17,69 @@
       "destination": "https://trackly-core-api.onrender.com/actuator/health"
     },
     {
-      "source": "/((?!api/|actuator/|assets/|icons/).*)",
+      "source": "/swagger-ui.html",
+      "destination": "https://trackly-core-api.onrender.com/swagger-ui.html"
+    },
+    {
+      "source": "/swagger-ui/:path*",
+      "destination": "https://trackly-core-api.onrender.com/swagger-ui/:path*"
+    },
+    {
+      "source": "/v3/api-docs/:path*",
+      "destination": "https://trackly-core-api.onrender.com/v3/api-docs/:path*"
+    },
+    {
+      "source": "/v3/api-docs",
+      "destination": "https://trackly-core-api.onrender.com/v3/api-docs"
+    },
+    {
+      "source": "/((?!api/|actuator/|swagger-ui|v3/api-docs|assets/|icons/).*)",
       "destination": "/index.html"
     }
   ],
   "headers": [
     {
       "source": "/api/(.*)",
-      "headers": [{ "key": "x-vercel-enable-rewrite-caching", "value": "0" }]
+      "headers": [
+        {
+          "key": "x-vercel-enable-rewrite-caching",
+          "value": "0"
+        }
+      ]
     },
     {
       "source": "/sw.js",
-      "headers": [{ "key": "Cache-Control", "value": "no-cache" }]
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "no-cache"
+        }
+      ]
     },
     {
       "source": "/assets/(.*)",
-      "headers": [{ "key": "Cache-Control", "value": "public, max-age=31536000, immutable" }]
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "public, max-age=31536000, immutable"
+        }
+      ]
     },
     {
       "source": "/(.*)",
       "headers": [
-        { "key": "X-Content-Type-Options", "value": "nosniff" },
-        { "key": "Referrer-Policy", "value": "strict-origin-when-cross-origin" },
-        { "key": "X-Frame-Options", "value": "DENY" }
+        {
+          "key": "X-Content-Type-Options",
+          "value": "nosniff"
+        },
+        {
+          "key": "Referrer-Policy",
+          "value": "strict-origin-when-cross-origin"
+        },
+        {
+          "key": "X-Frame-Options",
+          "value": "DENY"
+        }
       ]
     }
   ]

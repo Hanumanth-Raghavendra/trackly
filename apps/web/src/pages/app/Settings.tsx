@@ -236,6 +236,9 @@ export default function Settings() {
             <Button asChild variant="ghost" size="sm">
               <a href={`${API_URL}/swagger-ui.html`}>API documentation</a>
             </Button>
+            <Button asChild variant="ghost" size="sm">
+              <a href={isNative ? `${GITHUB_URL}/blob/main/apps/web/public/privacy.html` : '/privacy.html'}>Privacy policy</a>
+            </Button>
             {!isNative && (
               <Button asChild variant="ghost" size="sm">
                 <a href={`${GITHUB_URL}/releases/latest`}>
