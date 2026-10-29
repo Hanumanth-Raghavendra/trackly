@@ -2,6 +2,7 @@ package dev.trackly.core;
 
 import dev.trackly.core.config.AppProperties;
 import dev.trackly.core.config.DatabaseUrl;
+import java.util.TimeZone;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
@@ -21,6 +22,9 @@ import org.springframework.scheduling.annotation.EnableScheduling;
 public class CoreApiApplication {
 
     public static void main(String[] args) {
+        // Servers run in UTC; user-facing dates are converted with each user's own timezone.
+        // (Also avoids Postgres rejecting legacy JVM zone ids such as "Asia/Calcutta".)
+        TimeZone.setDefault(TimeZone.getTimeZone("UTC"));
         // Accept a Neon-style postgres:// DATABASE_URL so both services share one connection string.
         DatabaseUrl.applyFromEnvironment(System.getenv());
         SpringApplication.run(CoreApiApplication.class, args);

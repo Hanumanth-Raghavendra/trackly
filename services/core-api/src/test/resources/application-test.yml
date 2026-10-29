@@ -1,0 +1,20 @@
+# Integration tests run against a real Postgres (CI provides one as a service container;
+# locally: `docker compose up -d postgres` and create a `trackly_test` database).
+spring:
+  datasource:
+    url: ${JDBC_DATABASE_URL:jdbc:postgresql://localhost:5432/trackly_test}
+    username: ${DB_USERNAME:postgres}
+    password: ${DB_PASSWORD:postgres}
+
+trackly:
+  rate-limit:
+    enabled: false   # covered by RateLimitFilterTest instead
+  insights:
+    url: ""
+  jwt:
+    secret: test-secret-test-secret-test-secret-test-secret
+
+logging:
+  level:
+    root: WARN
+    dev.trackly: INFO

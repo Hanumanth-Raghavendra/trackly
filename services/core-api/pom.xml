@@ -7,7 +7,7 @@
     <parent>
         <groupId>org.springframework.boot</groupId>
         <artifactId>spring-boot-starter-parent</artifactId>
-        <version>4.1.1</version>
+        <version>4.1.2</version>
         <relativePath/>
     </parent>
 
@@ -19,8 +19,9 @@
 
     <properties>
         <java.version>21</java.version>
-        <springdoc.version>3.0.2</springdoc.version>
+        <springdoc.version>3.2.0</springdoc.version>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+        <nimbus-jose-jwt.version>10.10</nimbus-jose-jwt.version>
         <test.excludedGroups></test.excludedGroups>
     </properties>
 
@@ -62,6 +63,7 @@
         <dependency>
             <groupId>com.nimbusds</groupId>
             <artifactId>nimbus-jose-jwt</artifactId>
+            <version>${nimbus-jose-jwt.version}</version>
         </dependency>
 
         <!-- Ops -->
@@ -99,8 +101,14 @@
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-surefire-plugin</artifactId>
                 <configuration>
+                    <includes>
+                        <include>**/*Test.java</include>
+                        <include>**/*IT.java</include>
+                    </includes>
                     <!-- Integration tests need Postgres; CI provides it as a service container. -->
                     <excludedGroups>${test.excludedGroups}</excludedGroups>
+                    <!-- Same as production: the JVM runs in UTC. -->
+                    <argLine>-Duser.timezone=UTC</argLine>
                 </configuration>
             </plugin>
         </plugins>
