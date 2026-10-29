@@ -1,0 +1,48 @@
+# --- OS / editors ---
+.DS_Store
+Thumbs.db
+.idea/
+*.iml
+.vscode/*
+!.vscode/extensions.json
+!.vscode/settings.json
+
+# --- Env & secrets (never commit real secrets) ---
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.jks
+*.keystore
+!**/debug.keystore
+
+# --- Node ---
+node_modules/
+dist/
+coverage/
+*.log
+npm-debug.log*
+.vite/
+*.tsbuildinfo
+playwright-report/
+test-results/
+blob-report/
+
+# --- Java / Maven ---
+target/
+*.class
+.mvn/wrapper/maven-wrapper.jar
+hs_err_pid*
+
+# --- Capacitor / Android build output ---
+apps/web/android/app/build/
+apps/web/android/build/
+apps/web/android/.gradle/
+apps/web/android/local.properties
+apps/web/android/capacitor-cordova-android-plugins/build/
+apps/web/android/app/release/
+
+# --- Misc ---
+.vercel/
+tmp/

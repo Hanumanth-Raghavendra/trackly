@@ -1,0 +1,92 @@
+# Trackly core API configuration.
+# Every value can be overridden with an environment variable — see .env.example at the repo root.
+
+server:
+  port: ${PORT:8080}
+  shutdown: graceful
+  forward-headers-strategy: framework   # trust X-Forwarded-* from Render / Vercel for client IPs
+  error:
+    include-stacktrace: never
+
+spring:
+  application:
+    name: trackly-core-api
+  main:
+    banner-mode: off
+  threads:
+    virtual:
+      enabled: true   # Java 21 virtual threads: cheap request handling on a tiny free instance
+  datasource:
+    # DATABASE_URL may be a JDBC URL or a Neon-style postgres:// URI (see DatabaseUrlConfig).
+    url: ${JDBC_DATABASE_URL:jdbc:postgresql://localhost:5432/trackly}
+    username: ${DB_USERNAME:postgres}
+    password: ${DB_PASSWORD:postgres}
+    hikari:
+      maximum-pool-size: ${DB_POOL_SIZE:5}
+      minimum-idle: 1
+      idle-timeout: 120000
+      connection-timeout: 20000
+      max-lifetime: 600000
+  jpa:
+    open-in-view: false
+    hibernate:
+      ddl-auto: validate
+    properties:
+      hibernate:
+        default_schema: core
+        jdbc:
+          time_zone: UTC
+          batch_size: 50
+        order_inserts: true
+        order_updates: true
+  flyway:
+    schemas: core
+    default-schema: core
+    create-schemas: true
+    locations: classpath:db/migration
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+  endpoint:
+    health:
+      show-details: never
+      probes:
+        enabled: true
+
+springdoc:
+  api-docs:
+    path: /v3/api-docs
+  swagger-ui:
+    path: /swagger-ui.html
+    operations-sorter: method
+    tags-sorter: alpha
+
+trackly:
+  jwt:
+    # Shared with the insights service, which verifies the same access tokens.
+    secret: ${JWT_SECRET:dev-only-secret-change-me-dev-only-secret-change-me}
+    issuer: trackly-core
+    access-ttl: ${JWT_ACCESS_TTL:15m}
+    refresh-ttl: ${JWT_REFRESH_TTL:30d}
+  cors:
+    allowed-origins: ${CORS_ALLOWED_ORIGINS:http://localhost:5173,http://localhost:4173,https://localhost,capacitor://localhost}
+  cookie:
+    secure: ${COOKIE_SECURE:false}
+    same-site: ${COOKIE_SAME_SITE:Strict}
+  insights:
+    url: ${INSIGHTS_URL:}
+    service-token: ${INTERNAL_SERVICE_TOKEN:dev-internal-token}
+  demo:
+    enabled: ${DEMO_ENABLED:true}
+    ttl: ${DEMO_TTL:24h}
+  outbox:
+    retention-days: ${OUTBOX_RETENTION_DAYS:30}
+
+logging:
+  level:
+    root: INFO
+    dev.trackly: INFO
+    org.hibernate.SQL: WARN
