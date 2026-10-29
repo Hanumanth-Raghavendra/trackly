@@ -12,7 +12,7 @@ concurrency:
 
 jobs:
   core-api:
-    name: core-api (Spring Boot)
+    name: core-api · Spring Boot
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -35,18 +35,12 @@ jobs:
           distribution: temurin
           java-version: "21"
           cache: maven
-      - name: Build and test
+      - name: Build and test (unit + integration)
         env:
           JDBC_DATABASE_URL: jdbc:postgresql://localhost:5432/trackly_test
           DB_USERNAME: postgres
           DB_PASSWORD: postgres
         run: mvn -B -ntp verify
-      - name: Upload jar
-        uses: actions/upload-artifact@v4
-        with:
-          name: core-api-jar
-          path: services/core-api/target/core-api.jar
-          retention-days: 7
       - name: Upload test reports
         if: failure()
         uses: actions/upload-artifact@v4
@@ -54,3 +48,47 @@ jobs:
           name: core-api-test-reports
           path: services/core-api/target/surefire-reports
           retention-days: 7
+
+  insights:
+    name: insights · Node + TypeScript
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: services/insights
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: insights_test
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 5s --health-timeout 5s --health-retries 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: services/insights/package-lock.json
+      - run: npm ci
+      - run: npm run lint
+      - run: npm run typecheck
+      - name: Test (unit + integration)
+        env:
+          TEST_DATABASE_URL: postgres://postgres:postgres@localhost:5432/insights_test
+        run: npm test
+      - run: npm run build
+
+  docker:
+    name: Docker images build
+    runs-on: ubuntu-latest
+    needs: [core-api, insights]
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build core-api image (with CDS training run)
+        run: docker build -t trackly-core-api services/core-api
+      - name: Build insights image
+        run: docker build -t trackly-insights services/insights
