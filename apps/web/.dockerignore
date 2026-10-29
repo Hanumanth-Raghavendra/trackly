@@ -1,0 +1,10 @@
+node_modules
+dist
+dev-dist
+android
+test-results
+playwright-report
+blob-report
+.env
+.env.*
+!.env.example
