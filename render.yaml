@@ -1,0 +1,79 @@
+# Render Blueprint: both backends on Render's FREE plan.
+# Step-by-step instructions: docs/DEPLOY.md
+#
+# - The database is NOT here: it lives on Neon's free plan (Render's free Postgres expires
+#   after 30 days). You paste Neon's connection string once, into core-api.
+# - Secrets shared by both services (JWT signing key, service-to-service token) are generated
+#   by Render, so they never appear in Git.
+# - autoDeployTrigger: checksPass => a push only deploys after GitHub Actions CI is green.
+
+envVarGroups:
+  - name: trackly-shared
+    envVars:
+      - key: JWT_SECRET
+        generateValue: true
+      - key: INTERNAL_SERVICE_TOKEN
+        generateValue: true
+
+services:
+  - type: web
+    name: trackly-core-api
+    runtime: docker
+    plan: free
+    region: singapore
+    dockerContext: ./services/core-api
+    dockerfilePath: ./services/core-api/Dockerfile
+    healthCheckPath: /actuator/health
+    autoDeployTrigger: checksPass
+    buildFilter:
+      paths:
+        - services/core-api/**
+    envVars:
+      - fromGroup: trackly-shared
+      # Neon connection string (the direct one, without "-pooler"), e.g.
+      # postgres://user:password@ep-xxx.ap-southeast-1.aws.neon.tech/neondb?sslmode=require
+      - key: DATABASE_URL
+        sync: false
+      # Your Vercel URL(s), comma separated, e.g. https://trackly-hr.vercel.app
+      # The mobile app's origins are always allowed.
+      - key: CORS_ALLOWED_ORIGINS
+        sync: false
+      # Public URL of the insights service, so core can nudge it the moment events happen.
+      - key: INSIGHTS_URL
+        value: https://trackly-insights.onrender.com
+      - key: COOKIE_SECURE
+        value: "true"
+      - key: DB_POOL_SIZE
+        value: "4"
+
+  - type: web
+    name: trackly-insights
+    runtime: docker
+    plan: free
+    region: singapore
+    dockerContext: ./services/insights
+    dockerfilePath: ./services/insights/Dockerfile
+    healthCheckPath: /health
+    autoDeployTrigger: checksPass
+    buildFilter:
+      paths:
+        - services/insights/**
+    envVars:
+      - fromGroup: trackly-shared
+      - key: NODE_ENV
+        value: production
+      - key: DATABASE_URL
+        fromService:
+          type: web
+          name: trackly-core-api
+          envVarKey: DATABASE_URL
+      - key: CORS_ALLOWED_ORIGINS
+        fromService:
+          type: web
+          name: trackly-core-api
+          envVarKey: CORS_ALLOWED_ORIGINS
+      - key: DB_POOL_SIZE
+        value: "4"
+      # Optional, all free (add them later in the Render dashboard, see docs/DEPLOY.md):
+      #   AI_PROVIDER=gemini + AI_API_KEY      -> AI weekly summaries and task breakdowns
+      #   VAPID_PUBLIC_KEY + VAPID_PRIVATE_KEY -> browser push notifications

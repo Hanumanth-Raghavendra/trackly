@@ -47,3 +47,6 @@ apps/web/android/app/release/
 # --- Misc ---
 .vercel/
 tmp/
+
+# Local stack logs (scripts/dev-stack.sh)
+.dev-logs/

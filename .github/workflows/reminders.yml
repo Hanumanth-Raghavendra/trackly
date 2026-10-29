@@ -1,0 +1,33 @@
+name: Reminders
+
+# Free "alarm clock" for the sleeping free-tier server: once an hour GitHub wakes the insights
+# service, which sends any habit reminders, due-soon alerts and morning plans that are due.
+#
+# Off until you add the repository secret INSIGHTS_SERVICE_TOKEN (copy the generated
+# INTERNAL_SERVICE_TOKEN from Render's "trackly-shared" environment group). See docs/DEPLOY.md.
+# Hourly keeps well inside the free plans: ~24 short wake-ups a day.
+#
+# Note: GitHub pauses scheduled workflows in repositories with no activity for 60 days.
+
+on:
+  schedule:
+    - cron: "7 * * * *"
+  workflow_dispatch:
+
+jobs:
+  tick:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Wake insights and send due reminders
+        env:
+          INSIGHTS_URL: ${{ vars.INSIGHTS_URL || 'https://trackly-insights.onrender.com' }}
+          TOKEN: ${{ secrets.INSIGHTS_SERVICE_TOKEN }}
+        run: |
+          if [ -z "$TOKEN" ]; then
+            echo "INSIGHTS_SERVICE_TOKEN is not set - reminders cron is disabled."
+            exit 0
+          fi
+          # A sleeping free service takes about a minute to wake; retry while it does.
+          curl -sS --fail --retry 4 --retry-delay 20 --retry-all-errors --max-time 90 \
+            -X POST "$INSIGHTS_URL/internal/cron/tick" -H "X-Service-Token: $TOKEN"
