@@ -41,7 +41,7 @@ export default defineConfig(({ mode }) => ({
       workbox: {
         globPatterns: ['**/*.{js,css,html,svg,png,woff2}'],
         navigateFallback: '/index.html',
-        navigateFallbackDenylist: [/^\/api\//, /^\/socket\.io\//],
+        navigateFallbackDenylist: [/^\/api\//, /^\/socket\.io\//, /^\/swagger-ui/, /^\/v3\/api-docs/, /^\/actuator\//],
         importScripts: ['/push-sw.js'],
       },
     }),
@@ -52,6 +52,9 @@ export default defineConfig(({ mode }) => ({
       '/api/v1/insights': { target: 'http://localhost:4000', changeOrigin: true },
       '/api': { target: 'http://localhost:8080', changeOrigin: true },
       '/socket.io': { target: 'http://localhost:4000', ws: true, changeOrigin: true },
+      '/swagger-ui': { target: 'http://localhost:8080', changeOrigin: true },
+      '/v3/api-docs': { target: 'http://localhost:8080', changeOrigin: true },
+      '/actuator/health': { target: 'http://localhost:8080', changeOrigin: true },
     },
   },
   preview: {
@@ -60,6 +63,9 @@ export default defineConfig(({ mode }) => ({
       '/api/v1/insights': { target: 'http://localhost:4000', changeOrigin: true },
       '/api': { target: 'http://localhost:8080', changeOrigin: true },
       '/socket.io': { target: 'http://localhost:4000', ws: true, changeOrigin: true },
+      '/swagger-ui': { target: 'http://localhost:8080', changeOrigin: true },
+      '/v3/api-docs': { target: 'http://localhost:8080', changeOrigin: true },
+      '/actuator/health': { target: 'http://localhost:8080', changeOrigin: true },
     },
   },
   build: {

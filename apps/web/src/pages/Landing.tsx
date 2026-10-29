@@ -200,7 +200,12 @@ export default function Landing() {
       <footer className="border-t border-lane">
         <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-4 px-5 py-8 text-sm text-ink-faint sm:px-8">
           <Logo compact />
-          <p>Built by Hanumanth Raghavendra. Open source under the MIT licence.</p>
+          <p>
+            Built by Hanumanth Raghavendra. Open source under the MIT licence.{' '}
+            <a href="/privacy.html" className="underline underline-offset-2 hover:text-ink">
+              Privacy
+            </a>
+          </p>
         </div>
       </footer>
     </div>

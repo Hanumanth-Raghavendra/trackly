@@ -1,0 +1,80 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Trackly privacy policy</title>
+  <meta name="description" content="What Trackly stores, why, and how to export or delete it.">
+  <link rel="icon" href="/favicon.svg" type="image/svg+xml">
+  <style>
+    :root { --bg: #f4f6fb; --ink: #0f1b45; --soft: #4a5578; --line: #d9deec; --accent: #2346d8; }
+    @media (prefers-color-scheme: dark) {
+      :root { --bg: #0b1230; --ink: #eef1fb; --soft: #aab3d4; --line: #26315c; --accent: #8ea4ff; }
+    }
+    * { box-sizing: border-box; }
+    body { margin: 0; background: var(--bg); color: var(--ink);
+      font: 16px/1.65 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
+    main { max-width: 42rem; margin: 0 auto; padding: 48px 16px 64px; }
+    h1 { font-size: 2.25rem; line-height: 1.1; margin: 0 0 8px; letter-spacing: -0.02em; }
+    h2 { font-size: 1.15rem; margin: 2rem 0 0.5rem; }
+    p, li { color: var(--soft); }
+    strong { color: var(--ink); }
+    a { color: var(--accent); }
+    table { width: 100%; border-collapse: collapse; margin-top: 0.5rem; font-size: 0.95rem; }
+    th, td { text-align: left; vertical-align: top; padding: 8px 10px 8px 0; border-bottom: 1px solid var(--line); }
+    th { color: var(--ink); font-weight: 600; }
+    td { color: var(--soft); }
+    .updated { color: var(--soft); margin: 0 0 2rem; }
+  </style>
+</head>
+<body>
+<main>
+  <p><a href="/">Trackly</a></p>
+  <h1>Privacy policy</h1>
+  <p class="updated">Last updated 29 October 2026. Applies to the Trackly website and Android app.</p>
+
+  <p>Trackly is a personal, open-source portfolio project. It stores only what it needs to work, does
+    not show ads, does not sell or share your data, and has no third-party analytics or tracking.</p>
+
+  <h2>What Trackly stores</h2>
+  <table>
+    <tr><th>Data</th><th>Why</th></tr>
+    <tr><td>Email address, display name, a salted hash of your password (never the password itself)</td>
+      <td>To create your account and sign you in</td></tr>
+    <tr><td>Your timezone and daily focus goal</td><td>So days, streaks and reminders match your clock</td></tr>
+    <tr><td>Tasks, projects, habits and check-ins (with optional mood and notes), goals, focus sessions</td>
+      <td>That's the app: the lists, charts and coach notes are computed from them</td></tr>
+    <tr><td>Session tokens and the device's browser/app name</td>
+      <td>To keep you signed in and to detect stolen sessions</td></tr>
+    <tr><td>Notification subscriptions (only if you turn notifications on)</td><td>To send the reminders you asked for</td></tr>
+  </table>
+
+  <h2>Where it's kept</h2>
+  <p>Data is stored in a PostgreSQL database (Neon) and processed by the Trackly servers (Render),
+    both in Singapore. The website is served by Vercel. Connections are encrypted (HTTPS).
+    In the Android app, your sign-in token is kept in the app's private storage and excluded from
+    device backups.</p>
+
+  <h2>Optional AI features</h2>
+  <p>If the server has an AI provider turned on and you use <strong>Break it down</strong> or
+    <strong>AI summary</strong>, Trackly sends that task's title and description, or that week's
+    totals, to the AI provider to generate the text. Your name and email are never sent.</p>
+
+  <h2>Demo accounts</h2>
+  <p>"Try the live demo" creates a temporary account filled with sample data. It is deleted
+    automatically, with everything in it, after 24 hours.</p>
+
+  <h2>Your control</h2>
+  <ul>
+    <li><strong>Export:</strong> Settings → Your data → Download my data gives you everything as JSON.</li>
+    <li><strong>Delete:</strong> Settings → Your data → Delete account permanently removes your account
+      and all its data from both services.</li>
+    <li><strong>Notifications:</strong> turn them off any time in Settings or in your device settings.</li>
+  </ul>
+
+  <h2>Contact</h2>
+  <p>Questions or requests: open an issue at
+    <a href="https://github.com/Hanumanth-Raghavendra/trackly/issues">github.com/Hanumanth-Raghavendra/trackly</a>.</p>
+</main>
+</body>
+</html>
