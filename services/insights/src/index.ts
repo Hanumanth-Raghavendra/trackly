@@ -40,7 +40,10 @@ async function main() {
   const app = createApp({ cfg, db, verify, ai, notifier, push, consumer, reminders });
 
   const server = createServer(app);
-  realtimeImpl = attachRealtime(server, verify, cfg.corsOrigins).realtime;
+  const sockets = attachRealtime(server, verify, cfg.corsOrigins);
+  realtimeImpl = sockets.realtime;
+  // Someone just opened the app: catch up on events now instead of at the next (slow) idle poll.
+  sockets.io.on('connection', () => consumer.nudge());
 
   server.listen(cfg.PORT, () => {
     logger.info({ port: cfg.PORT, ai: ai.name, push: push.enabled }, 'insights service listening');

@@ -1,5 +1,6 @@
-# Integration tests run against a real Postgres (CI provides one as a service container;
-# locally: `docker compose up -d postgres` and create a `trackly_test` database).
+# Integration tests run against a real Postgres: CI provides one as a service container; locally,
+# create a `trackly_test` database in any Postgres (see docs/DEVELOPMENT.md). For the one in
+# docker compose, use JDBC_DATABASE_URL=jdbc:postgresql://localhost:5433/trackly_test.
 spring:
   datasource:
     url: ${JDBC_DATABASE_URL:jdbc:postgresql://localhost:5432/trackly_test}
