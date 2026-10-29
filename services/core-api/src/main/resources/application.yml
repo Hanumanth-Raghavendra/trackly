@@ -84,6 +84,8 @@ trackly:
     ttl: ${DEMO_TTL:24h}
   outbox:
     retention-days: ${OUTBOX_RETENTION_DAYS:30}
+  rate-limit:
+    enabled: ${RATE_LIMIT_ENABLED:true}
 
 logging:
   level:

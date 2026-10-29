@@ -9,7 +9,8 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
  * (which in turn reads environment variables, so the same jar runs locally and on Render).
  */
 @ConfigurationProperties(prefix = "trackly")
-public record AppProperties(Jwt jwt, Cors cors, Cookie cookie, Insights insights, Demo demo, Outbox outbox) {
+public record AppProperties(Jwt jwt, Cors cors, Cookie cookie, Insights insights, Demo demo, Outbox outbox,
+                            RateLimit rateLimit) {
 
     public record Jwt(String secret, String issuer, Duration accessTtl, Duration refreshTtl) {}
 
@@ -23,4 +24,6 @@ public record AppProperties(Jwt jwt, Cors cors, Cookie cookie, Insights insights
     public record Demo(boolean enabled, Duration ttl) {}
 
     public record Outbox(int retentionDays) {}
+
+    public record RateLimit(boolean enabled) {}
 }
