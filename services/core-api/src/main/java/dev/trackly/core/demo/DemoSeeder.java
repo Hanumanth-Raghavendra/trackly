@@ -18,6 +18,7 @@ import java.time.LocalDate;
 import java.time.LocalTime;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
+import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.HexFormat;
@@ -214,23 +215,35 @@ public class DemoSeeder {
                 for (int i = 0; i < count; i++) {
                     Template t = pick(weekend);
                     Instant created = at(day, 8 + rnd.nextInt(10), rnd.nextInt(60));
-                    Instant due = rnd.nextDouble() < 0.7 ? at(day.plusDays(rnd.nextInt(4)), 18, 0) : null;
-                    boolean done = rnd.nextDouble() < 0.84;
+                    Instant due = rnd.nextDouble() < 0.65 ? at(day.plusDays(rnd.nextInt(4)), 18, 0) : null;
+                    boolean done = rnd.nextDouble() < 0.94;
+                    if (!done && due != null && offset > 4) {
+                        due = null; // a stale backlog item, not a pile of overdue work
+                    }
                     Instant completed = null;
                     if (done) {
-                        LocalDate doneDay = day.plusDays(rnd.nextDouble() < 0.6 ? 0 : 1 + rnd.nextInt(3));
-                        if (doneDay.isAfter(today.minusDays(1))) {
-                            doneDay = today.minusDays(1);
+                        boolean late = due != null && rnd.nextDouble() < 0.13;
+                        LocalDate doneDay;
+                        if (due != null) {
+                            LocalDate dueDay = due.atZone(zone).toLocalDate();
+                            long span = ChronoUnit.DAYS.between(day, dueDay);
+                            doneDay = late ? dueDay.plusDays(1 + rnd.nextInt(2))
+                                    : day.plusDays(span <= 0 ? 0 : rnd.nextInt((int) span + 1));
+                        } else {
+                            doneDay = day.plusDays(rnd.nextDouble() < 0.6 ? 0 : 1 + rnd.nextInt(2));
                         }
-                        if (due != null && rnd.nextDouble() < 0.14) {
-                            doneDay = due.atZone(zone).toLocalDate().plusDays(1 + rnd.nextInt(2));
-                            if (!doneDay.isBefore(today)) {
-                                doneDay = today.minusDays(1);
-                            }
+                        if (!doneDay.isBefore(today)) {
+                            doneDay = today.minusDays(1);
                         }
                         completed = at(doneDay, productiveHour(doneDay), rnd.nextInt(60));
                         if (completed.isBefore(created)) {
                             completed = created.plus(Duration.ofMinutes(30 + rnd.nextInt(180)));
+                        }
+                        if (!late && due != null && completed.isAfter(due)) {
+                            completed = due.minus(Duration.ofMinutes(20 + rnd.nextInt(150)));
+                            if (completed.isBefore(created)) {
+                                completed = created.plus(Duration.ofMinutes(10));
+                            }
                         }
                         if (completed.isAfter(now)) {
                             completed = now.minus(Duration.ofHours(1));
@@ -265,10 +278,29 @@ public class DemoSeeder {
                 Template t = new Template((String) o[0], (String) o[1], (String[]) o[2], (String) o[7]);
                 UUID parent = addTask((String) o[0], t, (String) o[3], created, due, null, (String) o[6], null, null);
                 if (o[0].toString().startsWith("Finish analytics")) {
+                    Instant subDone = created.plus(Duration.ofHours(20));
                     addTask("Productivity score ring", t, "MEDIUM", created, null,
-                            created.plus(Duration.ofHours(20)), "DONE", parent, null);
+                            subDone.isAfter(now) ? now.minus(Duration.ofHours(2)) : subDone, "DONE", parent, null);
                     addTask("Peak-hours heatmap", t, "MEDIUM", created, null, null, "TODO", parent, null);
                     addTask("Weekly trend line", t, "LOW", created, null, null, "TODO", parent, null);
+                }
+            }
+
+            // Work already finished earlier today, so the Today view shows a day in progress.
+            int localHour = now.atZone(zone).getHour();
+            if (localHour >= 9) {
+                String[][] doneToday = {
+                    {"Standup notes and plan the day", "Work", "planning"},
+                    {"Fix flaky login test", "Work", "bug"},
+                    {"Revise Java streams API", "Learning", "java"},
+                };
+                int n = Math.min(doneToday.length, 1 + (localHour - 9) / 2);
+                for (int i = 0; i < n; i++) {
+                    Instant finished = now.minus(Duration.ofMinutes(25 + 50L * i + rnd.nextInt(20)));
+                    Instant started = finished.minus(Duration.ofMinutes(60 + rnd.nextInt(120)));
+                    Template t = new Template(doneToday[i][0], doneToday[i][1], new String[] {doneToday[i][2]}, null);
+                    addTask(doneToday[i][0], t, i == 1 ? "HIGH" : "MEDIUM", started, at(today, 18, 0), finished,
+                            "DONE", null, null);
                 }
             }
             // A recurring task.
@@ -435,7 +467,12 @@ public class DemoSeeder {
                 int sessions = offset == 0 ? 1 : (weekend ? rnd.nextInt(2) : 1 + rnd.nextInt(3));
                 for (int i = 0; i < sessions; i++) {
                     int planned = rnd.nextDouble() < 0.75 ? 25 : 50;
-                    Instant start = at(day, productiveHour(day), rnd.nextInt(30));
+                    Instant start = offset == 0
+                            ? now.minus(Duration.ofMinutes(90 + rnd.nextInt(60)))
+                            : at(day, productiveHour(day), rnd.nextInt(30));
+                    if (offset == 0 && !start.atZone(zone).toLocalDate().equals(today)) {
+                        continue;
+                    }
                     boolean completed = rnd.nextDouble() < 0.85;
                     int seconds = completed ? planned * 60 : (planned * 60) * (30 + rnd.nextInt(50)) / 100;
                     Instant end = start.plusSeconds(seconds);
