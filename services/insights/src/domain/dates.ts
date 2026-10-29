@@ -33,8 +33,38 @@ export function isValidTimeZone(tz: string | null | undefined): tz is string {
   }
 }
 
+/**
+ * Legacy IANA names browsers still report (Chrome on Indian systems sends "Asia/Calcutta")
+ * that some Postgres timezone tables don't know.
+ */
+const ALIASES: Record<string, string> = {
+  'Asia/Calcutta': 'Asia/Kolkata',
+  'Asia/Saigon': 'Asia/Ho_Chi_Minh',
+  'Asia/Katmandu': 'Asia/Kathmandu',
+  'Asia/Rangoon': 'Asia/Yangon',
+  'Asia/Dacca': 'Asia/Dhaka',
+  'Asia/Thimbu': 'Asia/Thimphu',
+  'Asia/Ulan_Bator': 'Asia/Ulaanbaatar',
+  'Europe/Kiev': 'Europe/Kyiv',
+  'America/Buenos_Aires': 'America/Argentina/Buenos_Aires',
+  'America/Indianapolis': 'America/Indiana/Indianapolis',
+  'Pacific/Truk': 'Pacific/Chuuk',
+  'Atlantic/Faeroe': 'Atlantic/Faroe',
+};
+
+let databaseZones: Set<string> | null = null;
+
+/** Called at startup with Postgres' own zone list, so SQL never receives a zone it can't parse. */
+export function setDatabaseZones(zones: Iterable<string> | null) {
+  databaseZones = zones ? new Set(zones) : null;
+}
+
 export function safeZone(tz: string | null | undefined): string {
-  return isValidTimeZone(tz) ? tz : 'UTC';
+  if (!tz) return 'UTC';
+  const zone = ALIASES[tz.trim()] ?? tz.trim();
+  if (!isValidTimeZone(zone)) return 'UTC';
+  if (databaseZones && !databaseZones.has(zone)) return 'UTC';
+  return zone;
 }
 
 const WEEKDAYS: Record<string, number> = { Mon: 1, Tue: 2, Wed: 3, Thu: 4, Fri: 5, Sat: 6, Sun: 7 };

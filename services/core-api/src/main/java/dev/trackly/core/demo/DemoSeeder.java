@@ -21,11 +21,13 @@ import java.time.ZonedDateTime;
 import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.Comparator;
+import java.util.HashSet;
 import java.util.HexFormat;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Random;
+import java.util.Set;
 import java.util.UUID;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -48,6 +50,7 @@ import org.springframework.transaction.annotation.Transactional;
 public class DemoSeeder {
 
     static final int HISTORY_DAYS = 56;
+    static final int MAX_BACKLOG = 8;
 
     private record Template(String title, String project, String[] tags, String goal) {}
 
@@ -79,18 +82,18 @@ public class DemoSeeder {
     private static final String[] MODULES = {"auth", "billing", "habits", "tasks", "analytics", "search"};
 
     private static final List<HabitSpec> HABITS = List.of(
-            new HabitSpec("Morning workout", "🏋️", "#ef4444", HabitSchedule.Frequency.SPECIFIC_DAYS, 4,
+            new HabitSpec("Morning workout", "🏋️", "#16a34a", HabitSchedule.Frequency.SPECIFIC_DAYS, 4,
                     List.of(DayOfWeek.MONDAY, DayOfWeek.WEDNESDAY, DayOfWeek.FRIDAY, DayOfWeek.SATURDAY),
                     0.82, "Run a 10K", LocalTime.of(6, 30)),
-            new HabitSpec("Read 20 pages", "📚", "#8b5cf6", HabitSchedule.Frequency.DAILY, 7, null, 0.8, null,
+            new HabitSpec("Read 20 pages", "📚", "#7c3aed", HabitSchedule.Frequency.DAILY, 7, null, 0.8, null,
                     LocalTime.of(21, 30)),
-            new HabitSpec("Solve one LeetCode problem", "💻", "#0ea5e9", HabitSchedule.Frequency.DAILY, 7, null, 0.72,
+            new HabitSpec("Solve one LeetCode problem", "💻", "#0891b2", HabitSchedule.Frequency.DAILY, 7, null, 0.72,
                     "Crack the Java interview", null),
-            new HabitSpec("Meditate 10 minutes", "🧘", "#14b8a6", HabitSchedule.Frequency.DAILY, 7, null, 0.66, null,
+            new HabitSpec("Meditate 10 minutes", "🧘", "#0d9488", HabitSchedule.Frequency.DAILY, 7, null, 0.66, null,
                     LocalTime.of(7, 0)),
-            new HabitSpec("Drink 3L of water", "💧", "#3b82f6", HabitSchedule.Frequency.DAILY, 7, null, 0.86, null,
+            new HabitSpec("Drink 3L of water", "💧", "#4361ee", HabitSchedule.Frequency.DAILY, 7, null, 0.86, null,
                     null),
-            new HabitSpec("Call family", "📞", "#f97316", HabitSchedule.Frequency.WEEKLY_TIMES, 2, null, 0.35, null,
+            new HabitSpec("Call family", "📞", "#ea580c", HabitSchedule.Frequency.WEEKLY_TIMES, 2, null, 0.35, null,
                     null));
 
     private final UserRepository users;
@@ -171,8 +174,8 @@ public class DemoSeeder {
         }
 
         private void seedProjects() {
-            String[][] defs = {{"Work", "#6366f1"}, {"Learning", "#10b981"}, {"Side project", "#f59e0b"},
-                {"Personal", "#ec4899"}};
+            String[][] defs = {{"Work", "#4361ee"}, {"Learning", "#0d9488"}, {"Side project", "#b7791f"},
+                {"Personal", "#db2777"}};
             Instant created = at(today.minusDays(HISTORY_DAYS), 9, 0);
             for (String[] d : defs) {
                 UUID id = UUID.randomUUID();
@@ -184,9 +187,9 @@ public class DemoSeeder {
 
         private void seedGoals() {
             Object[][] defs = {
-                {"Ship portfolio v2", "Finish Trackly and publish it with a live demo", "#f59e0b", 21},
-                {"Crack the Java interview", "Core Java, Spring Boot and SQL - interview ready", "#6366f1", 45},
-                {"Run a 10K", "Build up from 3K to a 10K run", "#ef4444", 60},
+                {"Ship portfolio v2", "Finish Trackly and publish it with a live demo", "#b7791f", 21},
+                {"Crack the Java interview", "Core Java, Spring Boot and SQL - interview ready", "#4361ee", 45},
+                {"Run a 10K", "Build up from 3K to a 10K run", "#16a34a", 60},
             };
             Instant created = at(today.minusDays(HISTORY_DAYS), 9, 30);
             for (Object[] d : defs) {
@@ -208,15 +211,18 @@ public class DemoSeeder {
 
         /** Past tasks with realistic completion behaviour. */
         private void seedHistoryTasks() {
+            // Keep the leftover backlog small and free of duplicate titles, like a real list.
+            Set<String> backlog = new HashSet<>();
             for (int offset = HISTORY_DAYS; offset >= 1; offset--) {
                 LocalDate day = today.minusDays(offset);
                 boolean weekend = day.getDayOfWeek().getValue() >= 6;
                 int count = weekend ? 1 + rnd.nextInt(3) : 4 + rnd.nextInt(4);
                 for (int i = 0; i < count; i++) {
                     Template t = pick(weekend);
+                    String title = fill(t.title());
                     Instant created = at(day, 8 + rnd.nextInt(10), rnd.nextInt(60));
                     Instant due = rnd.nextDouble() < 0.65 ? at(day.plusDays(rnd.nextInt(4)), 18, 0) : null;
-                    boolean done = rnd.nextDouble() < 0.94;
+                    boolean done = rnd.nextDouble() < 0.94 || backlog.size() >= MAX_BACKLOG || !backlog.add(title);
                     if (!done && due != null && offset > 4) {
                         due = null; // a stale backlog item, not a pile of overdue work
                     }
@@ -249,8 +255,7 @@ public class DemoSeeder {
                             completed = now.minus(Duration.ofHours(1));
                         }
                     }
-                    addTask(fill(t.title()), t, priority(), created, due, completed, done ? "DONE" : "TODO", null,
-                            null);
+                    addTask(title, t, priority(), created, due, completed, done ? "DONE" : "TODO", null, null);
                 }
             }
         }
@@ -538,7 +543,17 @@ public class DemoSeeder {
 
         private String fill(String title) {
             if (title.contains("%d")) {
-                return title.formatted(2 + rnd.nextInt(40));
+                int n;
+                if (title.contains("km")) {
+                    n = 3 + rnd.nextInt(8); // building up to a 10K
+                } else if (title.contains("problems")) {
+                    n = 3 + rnd.nextInt(6);
+                } else if (title.contains("chapter")) {
+                    n = 1 + rnd.nextInt(12);
+                } else {
+                    n = 12 + rnd.nextInt(70);
+                }
+                return title.formatted(n);
             }
             if (title.contains("%s")) {
                 return title.formatted(MODULES[rnd.nextInt(MODULES.length)]);

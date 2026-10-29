@@ -21,7 +21,7 @@ const schema = z.object({
 
   CORS_ALLOWED_ORIGINS: z
     .string()
-    .default('http://localhost:5173,http://localhost:4173,https://localhost,capacitor://localhost'),
+    .default('http://localhost:5173,http://127.0.0.1:5173,http://localhost:4173,http://127.0.0.1:4173,https://localhost,capacitor://localhost'),
 
   // Outbox consumer
   OUTBOX_BATCH_SIZE: z.coerce.number().int().min(10).max(2000).default(500),

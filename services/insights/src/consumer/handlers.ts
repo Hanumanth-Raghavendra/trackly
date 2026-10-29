@@ -1,4 +1,5 @@
 import type { Tx } from '../db.js';
+import { safeZone } from '../domain/dates.js';
 import { GOAL_XP, xpForFocus, xpForHabit, xpForTask, type XpAward } from '../domain/gamification.js';
 
 /** One row of core.outbox_events. */
@@ -89,7 +90,7 @@ export async function applyEvent(tx: Tx, e: OutboxEvent): Promise<HandlerResult>
          VALUES ($1, $2, $3, $4, $5, $6, $7)
          ON CONFLICT (user_id) DO UPDATE SET email = EXCLUDED.email, display_name = EXCLUDED.display_name,
            timezone = EXCLUDED.timezone, focus_goal_minutes = EXCLUDED.focus_goal_minutes, demo = EXCLUDED.demo`,
-        [userId, str(p.email), str(p.displayName), str(p.timezone) ?? 'UTC', num(p.focusGoalMinutes) ?? 60,
+        [userId, str(p.email), str(p.displayName), safeZone(str(p.timezone)), num(p.focusGoalMinutes) ?? 60,
           Boolean(p.demo), str(p.createdAt) ?? e.occurred_at.toISOString()],
       );
       return { entity: 'user' };

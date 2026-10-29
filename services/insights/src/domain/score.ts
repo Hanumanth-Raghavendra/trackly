@@ -63,7 +63,11 @@ export function scoreDay(i: DayInputs): DayScore {
     key: 'tasks',
     label: 'Tasks',
     ratio: clamp01(i.tasksCompleted / target),
-    detail: `${i.tasksCompleted} of ${target} planned tasks`,
+    // Say where the target comes from: today's due list, or the 3-task floor / 8-task cap.
+    detail:
+      target === i.tasksDue
+        ? `${i.tasksCompleted} of ${target} due today`
+        : `${i.tasksCompleted} of ${target} (daily target)`,
   });
   if (i.habitsConfigured > 0 && i.habitsDue > 0) {
     parts.push({

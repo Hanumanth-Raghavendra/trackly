@@ -1,5 +1,15 @@
 import { describe, expect, it } from 'vitest';
-import { addDays, dayRange, formatHour, isValidTimeZone, localParts, safeZone, weekStart, weekdayOf } from '../../src/domain/dates.js';
+import {
+  addDays,
+  dayRange,
+  formatHour,
+  isValidTimeZone,
+  localParts,
+  safeZone,
+  setDatabaseZones,
+  weekStart,
+  weekdayOf,
+} from '../../src/domain/dates.js';
 
 describe('dates', () => {
   it('converts an instant to the local calendar day and hour', () => {
@@ -27,6 +37,22 @@ describe('dates', () => {
     expect(isValidTimeZone('Asia/Kolkata')).toBe(true);
     expect(isValidTimeZone('Mars/Olympus')).toBe(false);
     expect(safeZone(undefined)).toBe('UTC');
+  });
+
+  it('maps legacy zone names browsers still send', () => {
+    expect(safeZone('Asia/Calcutta')).toBe('Asia/Kolkata');
+    expect(safeZone(' Europe/Kiev ')).toBe('Europe/Kyiv');
+    expect(safeZone('America/New_York')).toBe('America/New_York');
+  });
+
+  it('falls back to UTC for zones the database does not know', () => {
+    setDatabaseZones(['UTC', 'Asia/Kolkata']);
+    try {
+      expect(safeZone('Asia/Calcutta')).toBe('Asia/Kolkata');
+      expect(safeZone('America/New_York')).toBe('UTC');
+    } finally {
+      setDatabaseZones(null);
+    }
   });
 
   it('formats hours for humans', () => {
