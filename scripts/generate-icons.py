@@ -65,6 +65,73 @@ def main() -> None:
     og.paste(m, (420, 135), m)
     og.save(PUBLIC / "og-image.png")
     print("icons written to", PUBLIC)
+    android()
+
+
+ANDROID_RES = ROOT / "apps" / "web" / "android" / "app" / "src" / "main" / "res"
+DENSITIES = {"mdpi": 1, "hdpi": 1.5, "xhdpi": 2, "xxhdpi": 3, "xxxhdpi": 4}
+
+
+def round_icon(size: int) -> Image.Image:
+    scale = 4
+    s = size * scale
+    img = Image.new("RGBA", (s, s), (0, 0, 0, 0))
+    ImageDraw.Draw(img).ellipse([0, 0, s - 1, s - 1], fill=DEEP)
+    img = img.resize((size, size), Image.LANCZOS)
+    art = mark(size, 0.16, background=None)
+    img.alpha_composite(art)
+    return img
+
+
+def notification_icon(size: int) -> Image.Image:
+    """Android status-bar icons must be white on transparent; the system tints them."""
+    scale = 4
+    s = size * scale
+    img = Image.new("RGBA", (s, s), (0, 0, 0, 0))
+    d = ImageDraw.Draw(img)
+    pad = int(s * 0.06)
+    h = int((s - 2 * pad) * 0.58)
+    top = (s - h) // 2
+    d.rounded_rectangle([pad, top, s - pad, top + h], radius=h // 2, outline=WHITE, width=int(s * 0.12))
+    r = int(s * 0.11)
+    cx, cy = int(s * 0.7), top + int(s * 0.06)
+    d.ellipse([cx - r, cy - r, cx + r, cy + r], fill=WHITE)
+    return img.resize((size, size), Image.LANCZOS)
+
+
+def splash(width: int, height: int) -> Image.Image:
+    img = Image.new("RGBA", (width, height), DEEP + (255,))
+    size = int(min(width, height) * 0.42)
+    art = mark(size, 0.04, background=None)
+    img.alpha_composite(art, ((width - size) // 2, (height - size) // 2))
+    return img
+
+
+def android() -> None:
+    """Launcher, adaptive, round, notification and splash images for the Capacitor app."""
+    if not ANDROID_RES.exists():
+        print("no android project yet (run `npx cap add android` in apps/web) - skipping")
+        return
+    for name, k in DENSITIES.items():
+        folder = ANDROID_RES / f"mipmap-{name}"
+        folder.mkdir(parents=True, exist_ok=True)
+        mark(int(48 * k), 0.12).save(folder / "ic_launcher.png")
+        round_icon(int(48 * k)).save(folder / "ic_launcher_round.png")
+        # Adaptive icon foreground: 108dp canvas, art kept inside the central 66dp safe zone.
+        mark(int(108 * k), 0.24, background=None).save(folder / "ic_launcher_foreground.png")
+        drawable = ANDROID_RES / f"drawable-{name}"
+        drawable.mkdir(parents=True, exist_ok=True)
+        notification_icon(int(24 * k)).save(drawable / "ic_stat_trackly.png")
+    (ANDROID_RES / "values" / "ic_launcher_background.xml").write_text(
+        '<?xml version="1.0" encoding="utf-8"?>\n<resources>\n'
+        '    <color name="ic_launcher_background">#14286E</color>\n</resources>\n'
+    )
+    # Splash screens: same sizes as the Capacitor template, regenerated in Trackly colours.
+    for png in ANDROID_RES.glob("drawable*/splash.png"):
+        with Image.open(png) as old:
+            w, h = old.size
+        splash(w, h).save(png)
+    print("android resources written to", ANDROID_RES)
 
 
 if __name__ == "__main__":
