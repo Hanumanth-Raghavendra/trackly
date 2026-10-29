@@ -168,4 +168,6 @@ See [MOBILE.md](MOBILE.md): GitHub builds the APK for you (Actions → **Android
 | Sign-in fails with 403 | `CORS_ALLOWED_ORIGINS` on `trackly-core-api` doesn't exactly match your Vercel URL (check `https`, no trailing `/`). |
 | Signed in, but nothing updates live across tabs | `VITE_SOCKET_URL` is missing or wrong in Vercel; redeploy after fixing. |
 | Render build fails | Open the deploy logs. If it's the database, re-check `DATABASE_URL` (pooling off, ends with `sslmode=require…`). |
+| `trackly-insights` logs show `ECONNREFUSED 127.0.0.1:5432` | Its copy of `DATABASE_URL` is missing. `trackly-insights` → **Environment** → add `DATABASE_URL` (same Neon string) and `CORS_ALLOWED_ORIGINS` (same Vercel URL) → **Save**. |
+| You changed `DATABASE_URL` or `CORS_ALLOWED_ORIGINS` later | Change it on **both** services (insights copies the value from core-api when the Blueprint syncs, not continuously). |
 | Everything stopped near the end of a month | A free limit was reached (Render instance hours or Neon compute). It resumes on the 1st; check usage in each dashboard. |
