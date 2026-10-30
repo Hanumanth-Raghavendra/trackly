@@ -91,7 +91,7 @@ export default function Focus() {
         <p className="text-sm text-ink-soft">One task, one timer. Sessions count towards your daily score.</p>
       </header>
 
-      <div className="grid items-start gap-6 lg:grid-cols-[minmax(0,7fr)_minmax(0,5fr)]">
+      <div className="grid grid-cols-1 items-start gap-6 lg:grid-cols-[minmax(0,7fr)_minmax(0,5fr)]">
         <section className="panel p-5 sm:p-8" aria-label="Focus timer">
           <Stadium
             value={state.phase === 'idle' ? 0 : progress}

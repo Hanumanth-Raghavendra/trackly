@@ -123,7 +123,7 @@ export default function Habits() {
       </section>
 
       {active.length > 0 && (
-        <div className="grid gap-6 lg:grid-cols-2">
+        <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
           <section className="panel p-5" aria-labelledby="heat-heading">
             <h2 id="heat-heading" className="font-bold">
               Consistency map

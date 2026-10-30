@@ -285,7 +285,7 @@ export default function Today() {
         )}
       </header>
 
-      <div className="grid gap-8 lg:grid-cols-[minmax(0,5fr)_minmax(0,7fr)]">
+      <div className="grid grid-cols-1 gap-8 lg:grid-cols-[minmax(0,5fr)_minmax(0,7fr)]">
         <ScorePanel />
         <div className="space-y-8">
           <CoachNotes />
@@ -293,7 +293,7 @@ export default function Today() {
         </div>
       </div>
 
-      <div className="grid gap-8 lg:grid-cols-[minmax(0,7fr)_minmax(0,5fr)]">
+      <div className="grid grid-cols-1 gap-8 lg:grid-cols-[minmax(0,7fr)_minmax(0,5fr)]">
         <TodayTasks />
         <TodayHabits />
       </div>

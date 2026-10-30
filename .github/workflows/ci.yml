@@ -148,6 +148,9 @@ jobs:
         run: npm ci && npm run build && npx playwright install --with-deps chromium
 
       - name: Start the stack
+        env:
+          # Tests sign up and sign in far more often than a real visitor; the limiter has its own unit test.
+          RATE_LIMIT_ENABLED: "false"
         run: |
           nohup java -jar services/core-api/target/core-api.jar > core.log 2>&1 &
           timeout 120 bash -c 'until curl -sf localhost:8080/actuator/health > /dev/null; do sleep 2; done'
