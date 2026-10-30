@@ -83,7 +83,10 @@ describe('OutboxConsumer', () => {
 
   it('keeps history quiet: old events unlock achievements silently', async () => {
     const user = uuid();
+    // Midday on purpose: completing a task before 07:00 or after 23:00 unlocks Early Bird / Night Owl too,
+    // which would make this test depend on the time of day it runs.
     const old = new Date(Date.now() - 30 * 86_400_000);
+    old.setUTCHours(12, 0, 0, 0);
     await publish(h.db, user, 'TASK_COMPLETED', task(uuid(), { status: 'DONE', completedAt: old.toISOString() }), old);
     await h.consumer.drain();
     const ach = await h.db.query('SELECT count(*)::int AS n FROM insights.achievements WHERE user_id = $1', [user]);
