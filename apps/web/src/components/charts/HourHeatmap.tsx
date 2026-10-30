@@ -14,14 +14,14 @@ export function HourHeatmap({ data }: { data: Heatmap }) {
   for (let d = 0; d < 7; d++) for (const h of HOURS) max = Math.max(max, value(d, h));
 
   return (
-    <div className="overflow-x-auto scrollbar-thin">
-      <table className="w-full min-w-[560px] table-fixed border-separate border-spacing-[3px] text-[11px]">
+    <div className="max-w-full overflow-x-auto scrollbar-thin">
+      <table className="w-full table-fixed border-separate border-spacing-[2px] text-[10px] sm:border-spacing-[3px] sm:text-[11px]">
         <caption className="sr-only">Tasks completed and focus time by weekday and hour</caption>
         <thead>
           <tr>
-            <th className="w-9" />
+            <th className="w-8 sm:w-9" />
             {HOURS.map((h) => (
-              <th key={h} scope="col" className="font-medium text-ink-faint">
+              <th key={h} scope="col" className="overflow-visible font-medium whitespace-nowrap text-ink-faint">
                 {h % 3 === 0 ? HOURS_LABEL(h) : <span className="sr-only">{HOURS_LABEL(h)}</span>}
               </th>
             ))}

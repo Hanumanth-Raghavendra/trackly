@@ -22,7 +22,7 @@ const WEEKDAYS = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Satur
 
 function Section({ title, subtitle, children, className }: { title: string; subtitle?: string; children: React.ReactNode; className?: string }) {
   return (
-    <section className={cn('panel p-5 sm:p-6', className)}>
+    <section className={cn('panel min-w-0 p-5 sm:p-6', className)}>
       <h2 className="font-bold">{title}</h2>
       {subtitle && <p className="mt-0.5 text-sm text-ink-soft">{subtitle}</p>}
       <div className="mt-5">{children}</div>
@@ -104,7 +104,7 @@ export default function Insights() {
               <h2 id="notes-heading" className="mb-3 text-lg font-bold">
                 What the coach noticed
               </h2>
-              <ul className="grid gap-3 md:grid-cols-2">
+              <ul className="grid grid-cols-1 gap-3 md:grid-cols-2">
                 {cards.data.map((c) => (
                   <li key={c.id} className={cn('rounded-r-[var(--radius-row)] border-l-[3px] bg-surface py-3 pr-4 pl-4', CARD_BORDER[c.kind])}>
                     <p className="font-semibold">
@@ -120,7 +120,7 @@ export default function Insights() {
             </section>
           )}
 
-          <div className="grid gap-6 lg:grid-cols-[minmax(0,8fr)_minmax(0,4fr)]">
+          <div className="grid grid-cols-1 gap-6 lg:grid-cols-[minmax(0,8fr)_minmax(0,4fr)]">
             <Section
               title="When you get things done"
               subtitle={
@@ -136,7 +136,7 @@ export default function Insights() {
             </Section>
           </div>
 
-          <div className="grid gap-6 lg:grid-cols-2">
+          <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
             <Section title="Deadlines" subtitle="How close to the deadline you usually finish.">
               {proc.data ? (
                 <>
@@ -205,7 +205,7 @@ export default function Insights() {
             </Section>
           </div>
 
-          <div className="grid gap-6 lg:grid-cols-3">
+          <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
             <Section title="Focus" subtitle={`Last ${days} days`}>
               {focus.data ? (
                 <div className="grid grid-cols-2 gap-4">

@@ -23,7 +23,7 @@ export default function Achievements() {
         </p>
       </header>
 
-      <div className="grid gap-6 lg:grid-cols-[minmax(0,5fr)_minmax(0,7fr)]">
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-[minmax(0,5fr)_minmax(0,7fr)]">
         <section className="panel p-6 lg:sticky lg:top-24 lg:self-start" aria-label="Your level">
           <Stadium value={g.progress} label={`Level ${g.level}, ${Math.round(g.progress * 100)}% to level ${g.level + 1}`}>
             <span className="text-sm font-semibold text-ink-soft">Level</span>

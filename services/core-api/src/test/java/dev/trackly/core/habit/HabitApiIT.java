@@ -1,6 +1,7 @@
 package dev.trackly.core.habit;
 
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -85,5 +86,24 @@ class HabitApiIT extends IntegrationTest {
                         .header(HttpHeaders.AUTHORIZATION, bearer(token)))
                 .andExpect(status().isConflict())
                 .andExpect(jsonPath("$.code").value("NO_FREEZE_TOKENS"));
+    }
+
+    @Test
+    void clientMistakesAreNeverServerErrors() throws Exception {
+        String token = registerAndGetToken();
+        // A missing query parameter is a 400, not a 500.
+        mvc.perform(get("/api/v1/habits/checkins").header(HttpHeaders.AUTHORIZATION, bearer(token)))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value("BAD_REQUEST"));
+        // A method that doesn't exist on a real path is a 405.
+        mvc.perform(put("/api/v1/habits").header(HttpHeaders.AUTHORIZATION, bearer(token))
+                        .contentType(MediaType.APPLICATION_JSON).content("{}"))
+                .andExpect(status().isMethodNotAllowed())
+                .andExpect(jsonPath("$.code").value("METHOD_NOT_ALLOWED"));
+        // A body that isn't JSON is a 415.
+        mvc.perform(post("/api/v1/habits").header(HttpHeaders.AUTHORIZATION, bearer(token))
+                        .contentType(MediaType.TEXT_PLAIN).content("name=Read"))
+                .andExpect(status().isUnsupportedMediaType())
+                .andExpect(jsonPath("$.code").value("UNSUPPORTED_MEDIA_TYPE"));
     }
 }
